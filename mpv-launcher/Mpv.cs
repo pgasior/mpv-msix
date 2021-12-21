@@ -18,18 +18,19 @@ namespace mpv_launcher
         [DllImport("user32.dll")]
         private static extern bool ShowWindow(IntPtr hWnd, IntPtr nCmdShow);
 
-        public static string executablePath = Path.Combine(Package.Current.InstalledLocation.Path, "mpv", "mpv.exe");
+        //public static string executablePath = Path.Combine(Package.Current.InstalledLocation.Path, "mpv", "mpv.exe");
         public static string pipe = "mpv-launcher-pipe";
         public static string pipePath = $@"\\.\pipe\{pipe}";
 
         private Utf8JsonWriter Writer;
         private NamedPipeClientStream Pipe;
         private StreamReader Reader;
+        private string ExecutablePath;
 
-        public static void Launch(params string[] args)
+        public void Launch(params string[] args)
         {
             var mpvProcess = new Process();
-            mpvProcess.StartInfo.FileName = executablePath;
+            mpvProcess.StartInfo.FileName = ExecutablePath;
             foreach (var arg in args)
             {
                 mpvProcess.StartInfo.ArgumentList.Add(arg);
@@ -38,17 +39,22 @@ namespace mpv_launcher
             return;
         }
 
-        public Mpv()
+        public void LaunchWithPipe()
         {
             if (!File.Exists(pipePath))
             {
-                Mpv.Launch($"--input-ipc-server={Mpv.pipePath}");
+                Launch($"--input-ipc-server={Mpv.pipePath}");
             }
 
             Pipe = new NamedPipeClientStream(Mpv.pipe);
             Pipe.Connect();
             Writer = new Utf8JsonWriter(Pipe, new JsonWriterOptions { Indented = false, SkipValidation = true });
             Reader = new StreamReader(Pipe);
+        }
+
+        public Mpv(string executablePath)
+        {
+            this.ExecutablePath = executablePath;
         }
 
         JsonDocument GetResponse(int id)

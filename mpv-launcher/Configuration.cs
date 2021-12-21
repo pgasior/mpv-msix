@@ -77,6 +77,7 @@ namespace mpv_launcher
         public SingleInstanceBehaviorEnum SingleInstanceBehavior = SingleInstanceBehaviorEnum.Replace;
         public bool SortFileExplorerSelection = true;
         public bool RaiseExistingWindow = true;
+        public string MpvExecutablePath = "";
 
         public void Update(IDictionary<string, string> config)
         {
@@ -87,6 +88,7 @@ namespace mpv_launcher
             SortFileExplorerSelection = BoolFromString(value) ?? SortFileExplorerSelection;
             config.TryGetValue("raise-existing-window", out value);
             RaiseExistingWindow = BoolFromString(value) ?? RaiseExistingWindow;
+            config.TryGetValue("mpv-executable-path", out MpvExecutablePath);
         }
 
         public Configuration()

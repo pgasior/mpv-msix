@@ -48,15 +48,17 @@ namespace mpv_launcher
         [STAThread]
         static void Main(string[] args)
         {
+            // load configuration
+            var config = new Configuration();
+
+            var mpv = new Mpv(config.MpvExecutablePath);
+
             // explicit request for a new window
             if (args.FirstOrDefault() == "--new-window")
             {
-                Mpv.Launch();
+                mpv.Launch();
                 return;
             }
-
-            // load configuration
-            var config = new Configuration();
 
             if (config.SortFileExplorerSelection)
             {
@@ -106,18 +108,18 @@ namespace mpv_launcher
             // start mpv
             if (config.SingleInstanceBehavior == SingleInstanceBehaviorEnum.NewWindow)
             {
-                Mpv.Launch(args);
+                mpv.Launch(args);
             }
             else if (config.SingleInstanceBehavior == SingleInstanceBehaviorEnum.SpamWindows)
             {
                 foreach (var arg in args)
                 {
-                    Mpv.Launch(arg);
+                    mpv.Launch(arg);
                 }
             }
             else
             {
-                var mpv = new Mpv();
+                mpv.LaunchWithPipe();
                 // load all media
                 mpv.LoadFiles(args, config.SingleInstanceBehavior == SingleInstanceBehaviorEnum.Append);
                 // activate the window
