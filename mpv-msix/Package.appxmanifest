@@ -205,11 +205,11 @@
             </uap2:SupportedVerbs>
           </uap:FileTypeAssociation>
         </uap:Extension>
-        <!--<uap5:Extension Category="windows.appExecutionAlias" Executable="mpv/mpv-console-launcher.exe" EntryPoint="Windows.FullTrustApplication">
+        <uap5:Extension Category="windows.appExecutionAlias" Executable="mpv-launcher/mpv-launcher.exe" EntryPoint="Windows.FullTrustApplication">
           <uap5:AppExecutionAlias uap10:Subsystem="console">
-            <uap5:ExecutionAlias Alias="mpv.exe" />
+            <uap5:ExecutionAlias Alias="umpv.exe" />
           </uap5:AppExecutionAlias>
-        </uap5:Extension>-->
+        </uap5:Extension>
         <uap:Extension Category="windows.protocol">
           <uap:Protocol Name="mpv">
             <uap:DisplayName>mpv</uap:DisplayName>

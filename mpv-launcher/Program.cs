@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 using Windows.ApplicationModel;
 using Windows.ApplicationModel.Activation;
 using Windows.UI.StartScreen;
@@ -67,11 +68,16 @@ namespace mpv_launcher
             }
 
             // handle launch event
+
             try
             {
                 var eventArgs = AppInstance.GetActivatedEventArgs();
 
-                if (eventArgs.Kind == ActivationKind.File)
+                if (eventArgs == null)
+                {
+                    //launch from app alias
+                }
+                else if (eventArgs.Kind == ActivationKind.File)
                 {
                     config.SingleInstanceBehavior = Configuration.SingleInstanceBehaviorFromString(((FileActivatedEventArgs)eventArgs).Verb) ?? config.SingleInstanceBehavior;
                 }
@@ -89,7 +95,7 @@ namespace mpv_launcher
                     }
                 }
             }
-            catch (COMException)
+            catch (COMException e)
             {
                 // GetActivatedEventArgs() appears to fail when mpv is invoked while also changing the default file association.
                 // this means we can't tell what verb was used to start mpv-launcher
@@ -103,7 +109,7 @@ namespace mpv_launcher
                     // fall back to the safer option and open a new window 
                     config.SingleInstanceBehavior = SingleInstanceBehaviorEnum.NewWindow;
                 }
-            }
+            } 
 
             // start mpv
             if (config.SingleInstanceBehavior == SingleInstanceBehaviorEnum.NewWindow)
