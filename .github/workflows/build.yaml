@@ -1,0 +1,78 @@
+name: Build and Release MSIX Bundle
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    env:
+      CERTIFICATE_BASE64: ${{ secrets.CERTIFICATE_BASE64 }}
+      CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
+      PACKAGE_NAME: 'mpv-msix'
+      MSIX_PUBLISHER: 'CN=Piotrek'
+      BUILD_NUMBER: ${{ github.run_number }} # Using GitHub Actions run number as build number
+      APP_VERSION: '0.0.0.${{ github.run_number }}'
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up MSBuild
+      uses: microsoft/setup-msbuild@v1.1.3
+
+    - name: Install NuGet
+      uses: nuget/setup-nuget@v1.1.1
+
+    - name: Restore NuGet packages
+      run: nuget restore
+
+    - name: Install 7z
+      run: |
+        choco install 7zip
+
+    - name: Add Windows SDK to PATH
+      run: |
+        echo "C:\Program Files (x86)\Windows Kits\10\bin\${{ env.RUNNER_OS }}\x64" >> $Env:GITHUB_PATH
+
+    - name: Decode and import certificate
+      run: |
+        echo $env:CERTIFICATE_BASE64 | Out-File -FilePath cert.pfx -Encoding ascii
+        Import-PfxCertificate -FilePath cert.pfx -CertStoreLocation Cert:\CurrentUser\My -Password (ConvertTo-SecureString -String $env:CERTIFICATE_PASSWORD -Force -AsPlainText)
+
+    - name: Update Version in manifest
+      working-directory: './mpv-msix'
+      run: |
+        $xmlFilePath = "Package.appxmanifest"
+        [xml]$xml = Get-Content $xmlFilePath
+        $newVersion = "$env:APP_VERSION"
+        $xml.Package.Identity.Version = $newVersion
+        $xml.Save($xmlFilePath)
+        Write-Output "Version updated to $newVersion in $xmlFilePath"
+
+    - name: Build the MSIX package
+      run: |
+        Get-ChildItem -Path Cert:\CurrentUser\My
+        msbuild /t:Restore,Rebuild /p:Configuration=Release /p:Platform=x64 /p:AppxBundle=Always /p:UapAppxPackageBuildMode=SideloadOnly  /p:PackageCertificateKeyPassword=$env:CERTIFICATE_PASSWORD /p:PackageCertificateSubject=$env:MSIX_PUBLISHER /p:AppxPackageSigningEnabled=true /p:AppxBundlePlatforms="x64" /p:AppxBundleConfiguration=Release /p:AppxBundle=Always /p:PackageCertificateFile=cert.pfx /p:PackageCertificatePassword=$env:CERTIFICATE_PASSWORD /p:AppxBundleDir=AppPackages /p:Version=$env:APP_VERSION
+
+    - name: Zip release
+      run: |
+        ls mpv-msix\AppPackages
+        7z a -t7z mpv-msix\AppPackages\mpv-msix_${env:APP_VERSION}_Test.7z mpv-msix\AppPackages\mpv-msix_${env:APP_VERSION}_Test\ -r
+
+    - name: Archive MSIX package
+      uses: actions/upload-artifact@v4
+      with:
+        name: msix-package
+        path: mpv-msix/AppPackages/mpv-msix_${{ env.APP_VERSION }}_Test.7z
+
+    - name: Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: v${{ env.APP_VERSION }}
+        files: |
+          mpv-msix/AppPackages/mpv-msix_${{ env.APP_VERSION }}_Test.7z
